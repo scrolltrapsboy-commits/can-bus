@@ -1,1 +1,30 @@
-[upload pending]
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CAN Bus Diagnostics</title><link rel="stylesheet" href="/static/style.css">
+</head>
+<body><main class="shell">
+<header class="top"><div class="brand"><span class="terminal">›_</span><b>CAN_BUS_DIAGNOSTICS.PY</b></div><div class="live"><i></i><span id="sim">SIMULATOR ACTIVE</span></div></header>
+<section class="content">
+<div class="eyebrow">CURRENT ARCHITECTURE PROTOTYPE</div>
+<div class="architecture">
+<div class="arch-card"><strong>CAN Simulator</strong><small>Python Generator</small></div>
+<div class="arch-card selected"><strong>Feature Pipeline</strong><small>Time-Series</small></div>
+<div class="arch-card"><strong>ML Classifier</strong><small class="progress">In Progress</small></div>
+</div>
+<section class="telemetry">
+<div class="telemetry-head"><span><b class="pulse">ϟ</b> CAN Telemetry Feed (Simulated)</span><strong id="hz">100 HZ</strong></div>
+<div class="metrics">
+<div><small>ENGINE_RPM</small><strong class="blue" id="rpm">2493</strong></div>
+<div><small>COOLANT_TEMP</small><strong class="yellow" id="temp">88.4°C</strong></div>
+<div><small>SYS_VOLTAGE</small><strong class="green" id="volt">13.91V</strong></div>
+</div>
+<div class="spark"><svg viewBox="0 0 500 28" preserveAspectRatio="none" aria-label="Recent simulated telemetry trend"><polyline id="line" points=""></polyline></svg></div>
+</section>
+<div class="eyebrow states-label">MULTI-CLASS OPERATIONAL STATES:</div>
+<div class="states"><div class="state normal active" id="normal">⊙ Normal</div><div class="state warning" id="warning">⚠ Warning</div><div class="state critical" id="critical">⚠ Critical</div></div>
+<div class="statusline"><b>Status:</b> <span id="status">Model training pipeline currently in progress. CAN message simulation and structured data engineering fully operational.</span></div>
+</section>
+<footer><span>FastAPI Microservice</span><span class="protocol">CAN 2.0B Protocol</span></footer>
+</main><script src="/static/app.js"></script></body></html>
