@@ -1,34 +1,9 @@
-const $ = id => document.getElementById(id);
-const history = [];
-function setState(state) {
-  document.querySelectorAll(".state").forEach(el => el.classList.remove("active"));
-  $(state.toLowerCase()).classList.add("active");
-}
-async function refresh() {
-  try {
-    const response = await fetch("/api/status", {cache:"no-store"});
-    if (!response.ok) throw new Error("API unavailable");
-    const data = await response.json();
-    $("sim").textContent = "SIMULATOR ACTIVE";
-    $("rpm").textContent = data.engine_rpm;
-    $("temp").textContent = data.coolant_temp_c.toFixed(1) + "°C";
-    $("volt").textContent = data.system_voltage_v.toFixed(2) + "V";
-    $("hz").textContent = data.frequency_hz + " HZ";
-    setState(data.operational_state);
-    $("status").textContent = data.operational_state === "Normal"
-      ? "Model training pipeline currently in progress. CAN message simulation and structured data engineering fully operational."
-      : data.operational_state === "Warning"
-      ? "Warning threshold reached in simulated telemetry. Review coolant temperature and system voltage."
-      : "Critical threshold reached in simulated telemetry. Inspect the simulated vehicle state.";
-    history.push(data.engine_rpm);
-    if (history.length > 50) history.shift();
-    $("line").setAttribute("points", history.map((value,index) =>
-      `${index * 500 / Math.max(49, history.length - 1)},${25 - (value - 2200) / 1500 * 22}`
-    ).join(" "));
-  } catch (error) {
-    $("sim").textContent = "API DISCONNECTED";
-    $("status").textContent = "Cannot reach telemetry API. Start the FastAPI service and refresh.";
-  }
-}
-refresh();
-setInterval(refresh, 1500);
+const $=id=>document.getElementById(id);let polling=null;let lastLogCount=0;
+async function startPipeline(){try{const s=await fetch('/api/run',{method:'POST'});const d=await s.json();if(!s.ok)throw Error(d.detail||'Could not start');$('startBtn').disabled=true;$('startBtn').textContent='⏳ RUNNING PIPELINE';$('status').textContent='Notebook-derived pipeline is running: virtual CAN frames → preprocessing → 5-second features → Isolation Forest.';if(!polling)polling=setInterval(refresh,1000);refresh()}catch(e){$('status').textContent='Start failed: '+e.message}}
+function setAlertCounts(a={}){for(const k of ['NORMAL','WARNING','CRITICAL']){const id=k.toLowerCase();$(' '+id);$(id+'N').textContent=a[k]??0;$(id).classList.toggle('active',Number(a[k]||0)>0)}}
+function drawChart(points,summary){const svg=$('chart');if(!points||!points.length){svg.innerHTML='<text x="20" y="35" class="empty-chart">Run pipeline to generate real model output</text>';return}const W=700,H=180,pad=16;const vals=points.map(p=>p.score||0);const max=Math.max(...vals,summary?.critical_threshold||0,.001)*1.12;const x=i=>pad+i*(W-2*pad)/Math.max(1,points.length-1);const y=v=>H-pad-(v/max)*(H-2*pad);let grid='';for(let j=0;j<4;j++){const gy=pad+j*(H-2*pad)/3;grid+=`<line x1="${pad}" y1="${gy}" x2="${W-pad}" y2="${gy}" stroke="#26384e" stroke-width="1"/>`}const path=points.map((p,i)=>(i?'L':'M')+`${x(i).toFixed(1)},${y(p.score||0).toFixed(1)}`).join(' ');let lines='';if(summary){lines+=`<line x1="${pad}" y1="${y(summary.warning_threshold)}" x2="${W-pad}" y2="${y(summary.warning_threshold)}" stroke="#f5ca50" stroke-dasharray="5 4"/><line x1="${pad}" y1="${y(summary.critical_threshold)}" x2="${W-pad}" y2="${y(summary.critical_threshold)}" stroke="#ff7d8c" stroke-dasharray="5 4"/>`}$('chart').innerHTML=grid+lines+`<path d="${path}" fill="none" stroke="#35c2ff" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`}
+function renderRows(rows){if(!rows?.length){$('rows').innerHTML='<tr><td colspan="5" class="empty">Waiting for model output</td></tr>';return}$('rows').innerHTML=rows.slice(-12).reverse().map(r=>`<tr><td>${Number(r.window_start||0).toFixed(0)}</td><td>${String(r.scenario||'').replaceAll('_',' ')}</td><td>${r.message_count??'—'}</td><td>${Number(r.anomaly_score||0).toFixed(6)}</td><td><span class="pill ${r.alert_status}">${r.alert_status}</span></td></tr>`).join('')}
+function renderLogs(logs=[]){if(logs.length===lastLogCount)return;lastLogCount=logs.length;$('logCount').textContent=logs.length+' events';$('logs').innerHTML=logs.slice(-45).map(l=>`<div class="logline"><span>${new Date(l.time).toLocaleTimeString([], {hour12:false})}</span><div>${escapeHtml(l.message)}</div></div>`).join('');$('logs').scrollTop=$('logs').scrollHeight}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function refresh(){try{const r=await fetch('/api/results',{cache:'no-store'});const d=await r.json();$('stage').textContent=d.stage||'Ready';$('percent').textContent=(d.progress||0)+'%';$('progressBar').style.width=(d.progress||0)+'%';$('sim').textContent=d.status==='running'?'PIPELINE RUNNING':d.status==='completed'?'MODEL COMPLETE':d.status==='error'?'PIPELINE ERROR':'PIPELINE READY';$('liveDot').classList.toggle('busy',d.status==='running');if(d.status==='running'){$('startBtn').disabled=true;$('startBtn').textContent='⏳ RUNNING PIPELINE'}else{$('startBtn').disabled=false;$('startBtn').textContent=d.status==='completed'?'↻ RUN AGAIN':'▶ START PIPELINE'}renderLogs(d.logs);if(d.error){$('status').textContent='Pipeline error: '+d.error;return}if(d.summary){const s=d.summary;$('frames').textContent=Number(s.frames_generated).toLocaleString();$('frameHint').textContent=Number(s.preprocessed_frames).toLocaleString()+' valid after cleaning';$('windows').textContent=s.windows;$('alertCount').textContent=Object.values(s.alerts||{}).reduce((a,b)=>a+b,0);$('alertHint').textContent='classified windows';setAlertCounts(s.alerts);$('precision').textContent=s.precision.toFixed(3);$('recall').textContent=s.recall.toFixed(3);$('f1').textContent=s.f1.toFixed(3);$('fpr').textContent=(s.false_positive_rate*100).toFixed(1)+'%';$('fnr').textContent=(s.false_negative_rate*100).toFixed(1)+'%';$('warnT').textContent=s.warning_threshold.toFixed(6);$('critT').textContent=s.critical_threshold.toFixed(6);$('thresholdLabel').textContent='NORMAL 95th / 99th percentile';$('tableInfo').textContent='Last 20 windows';drawChart(d.telemetry,s);renderRows(d.results);$('status').textContent=d.status==='completed'?'Pipeline complete. Values shown are the output of the notebook-derived simulation and Isolation Forest model.':'Pipeline running; outputs update as the run completes.'}if(d.status==='completed'||d.status==='error'){clearInterval(polling);polling=null}}catch(e){$('status').textContent='API not reachable. Check Render service logs and confirm app/pipeline.py is deployed.'}}
+refresh();polling=setInterval(refresh,1500);
