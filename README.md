@@ -1,28 +1,28 @@
 # CAN Bus Diagnostics Dashboard
 
-A runnable dashboard prototype based on the uploaded `Mark_23_hybrid.ipynb` notebook and supplied reference screenshot.
+Screenshot-inspired dashboard prototype based on the supplied CAN diagnostics mockup and the Mark_23_hybrid notebook.
 
 ## Features
-- Screenshot-matched dark diagnostic panel, status indicator, three architecture cards, telemetry metrics, operational state indicators and footer.
-- FastAPI endpoints: `/api/health` and `/api/status`.
-- Live simulated RPM, coolant temperature and system voltage refresh every 1.5 seconds.
-- Responsive layout for smaller screens.
-- Original notebook preserved under `notebooks/`.
+- Dark navy, cyan, green and yellow diagnostics UI
+- FastAPI backend at `/api/status` and `/api/health`
+- Refreshing simulated RPM, coolant-temperature and system-voltage telemetry
+- Responsive layout
 
-> **Important:** The dashboard currently displays generated/simulated telemetry. It does not connect to a physical CAN adapter or claim a trained production classifier. Integrate your real CAN interface and trained model before using it for vehicle decisions.
+> **Important:** Data is simulated. This repository is not connected to live CAN hardware; integrate a real adapter and the model from the notebook before relying on it for vehicle diagnostics.
 
-## Run locally (Python 3.10+)
+## Run locally
+Python 3.10+
+
 ```bash
 python -m venv .venv
-# Windows PowerShell:
-.venv\\Scripts\\Activate.ps1
+# Windows PowerShell: .venv\\Scripts\\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 Open http://127.0.0.1:8000. API docs: http://127.0.0.1:8000/docs
 
-## Repository contents
-- `app/main.py` — FastAPI service and simulated telemetry API
-- `app/static/` — frontend
-- `notebooks/Mark_23_hybrid.ipynb` — original uploaded notebook
-- `assets/reference-dashboard.png` — supplied dashboard reference
+## Project files
+- `app/main.py` — FastAPI backend and telemetry API
+- `app/static/` — dashboard frontend
+- `notebooks/Mark_23_hybrid.ipynb` — original project notebook (to be uploaded separately if needed)
